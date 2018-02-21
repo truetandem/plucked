@@ -118,6 +118,7 @@ func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
 
 				if !found {
 					buf.Reset()
+					stmts = []string{}
 					return
 				}
 			}
