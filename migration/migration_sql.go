@@ -84,6 +84,43 @@ func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
 				}
 				break
 			}
+
+			// allow SQL files to be environments specific.
+			// usage:
+			//
+			// ```
+			// -- +goose Env GOLANG_ENV:production PRODUCTION:1
+			// ```
+			if strings.HasPrefix(cmd, "Env") {
+				found := false
+
+				// break pairings apart
+				pairs := strings.Split(strings.Join(strings.SplitAfterN(cmd, " ", 2)[1:], " "), " ")
+				for _, pair := range pairs {
+					if !strings.Contains(pair, ":") {
+						continue
+					}
+
+					// split the key/value pair
+					kv := strings.SplitN(pair, ":", 2)
+
+					// if the key is empty continue
+					if kv[0] == "" {
+						continue
+					}
+
+					// if the environment variable of `key` is equal to the `value` then continue
+					if strings.EqualFold(os.Getenv(kv[0]), kv[1]) {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					buf.Reset()
+					return
+				}
+			}
 		}
 
 		if !directionIsActive {
