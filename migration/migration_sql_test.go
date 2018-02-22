@@ -99,6 +99,20 @@ func TestSplitStatements(t *testing.T) {
 			setup:     func() { _ = os.Setenv("GOLANG_ENV", "production") },
 			teardown:  func() { _ = os.Unsetenv("GOLANG_ENV") },
 		},
+		{
+			sql:       envartxt,
+			direction: true,
+			count:     0,
+			setup:     func() { _ = os.Setenv("GOLANG_ENV", "development") },
+			teardown:  func() { _ = os.Unsetenv("GOLANG_ENV") },
+		},
+		{
+			sql:       envartxt,
+			direction: false,
+			count:     0,
+			setup:     func() { _ = os.Setenv("GOLANG_ENV", "development") },
+			teardown:  func() { _ = os.Unsetenv("GOLANG_ENV") },
+		},
 	}
 
 	for _, test := range tests {
