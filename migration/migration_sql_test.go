@@ -1,6 +1,7 @@
 package migration
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -51,6 +52,8 @@ func TestSplitStatements(t *testing.T) {
 		sql       string
 		direction bool
 		count     int
+		setup     func()
+		teardown  func()
 	}
 
 	tests := []testData{
@@ -58,26 +61,64 @@ func TestSplitStatements(t *testing.T) {
 			sql:       functxt,
 			direction: true,
 			count:     2,
+			setup:     func() {},
+			teardown:  func() {},
 		},
 		{
 			sql:       functxt,
 			direction: false,
 			count:     2,
+			setup:     func() {},
+			teardown:  func() {},
 		},
 		{
 			sql:       multitxt,
 			direction: true,
 			count:     2,
+			setup:     func() {},
+			teardown:  func() {},
 		},
 		{
 			sql:       multitxt,
 			direction: false,
 			count:     2,
+			setup:     func() {},
+			teardown:  func() {},
+		},
+		{
+			sql:       envartxt,
+			direction: true,
+			count:     2,
+			setup:     func() { _ = os.Setenv("GOLANG_ENV", "production") },
+			teardown:  func() { _ = os.Unsetenv("GOLANG_ENV") },
+		},
+		{
+			sql:       envartxt,
+			direction: false,
+			count:     2,
+			setup:     func() { _ = os.Setenv("GOLANG_ENV", "production") },
+			teardown:  func() { _ = os.Unsetenv("GOLANG_ENV") },
+		},
+		{
+			sql:       envartxt,
+			direction: true,
+			count:     0,
+			setup:     func() { _ = os.Setenv("GOLANG_ENV", "development") },
+			teardown:  func() { _ = os.Unsetenv("GOLANG_ENV") },
+		},
+		{
+			sql:       envartxt,
+			direction: false,
+			count:     0,
+			setup:     func() { _ = os.Setenv("GOLANG_ENV", "development") },
+			teardown:  func() { _ = os.Unsetenv("GOLANG_ENV") },
 		},
 	}
 
 	for _, test := range tests {
+		test.setup()
 		stmts := splitSQLStatements(strings.NewReader(test.sql), test.direction)
+		test.teardown()
 		if len(stmts) != test.count {
 			t.Errorf("incorrect number of stmts. got %v, want %v", len(stmts), test.count)
 		}
@@ -121,6 +162,32 @@ drop TABLE histories;
 
 // test multiple up/down transitions in a single script
 var multitxt = `-- +goose Up
+CREATE TABLE post (
+    id int NOT NULL,
+    title text,
+    body text,
+    PRIMARY KEY(id)
+);
+
+-- +goose Down
+DROP TABLE post;
+
+-- +goose Up
+CREATE TABLE fancier_post (
+    id int NOT NULL,
+    title text,
+    body text,
+    created_on timestamp without time zone,
+    PRIMARY KEY(id)
+);
+
+-- +goose Down
+DROP TABLE fancier_post;
+`
+
+// test environment specific scripts
+var envartxt = `-- +goose Env BSD:HUGS GOLANG_ENV:production
+-- +goose Up
 CREATE TABLE post (
     id int NOT NULL,
     title text,
